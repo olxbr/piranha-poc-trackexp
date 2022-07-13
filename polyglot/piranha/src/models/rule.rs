@@ -39,11 +39,11 @@ pub(crate) struct Rule {
   /// Name of the rule. (It is unique)
   name: String,
   /// Tree-sitter query as string
-  query: String,
+  query: Option<String>,
   /// The tag corresponding to the node to be replaced
-  replace_node: String,
+  replace_node: Option<String>,
   /// Replacement pattern
-  replace: String,
+  replace: Option<String>,
   /// Group(s) to which the rule belongs
   groups: Option<Vec<String>>,
   /// Holes that need to be filled, in order to instantiate a rule
@@ -61,7 +61,12 @@ impl Rule {
 
   // Dummy rules are helper rules that make it easier to define the rule graph.
   pub(crate) fn is_dummy_rule(&self) -> bool {
-    self.query.is_empty() && self.replace.is_empty()
+    self.query.is_none() && self.replace.is_none() && self.replace_node.is_none()
+  }
+
+  // Match only rules, as the name suggests just match to the AST of the input program and adds the matches to substitution table.
+  pub(crate) fn is_match_only(&self) -> bool {
+    self.query.is_some() && self.replace.is_none() && self.replace_node.is_none()
   }
 
   /// Instantiate `self` with substitutions or panic.
@@ -132,9 +137,12 @@ impl Rule {
     self.grep_heuristics = Some(gh.clone());
   }
 
-  pub(crate) fn get_query(&self) -> String {
-    self.query.clone()
-  }
+  // pub(crate) fn get_query(&self) -> String {
+  //     match &self.query {
+  //         Some(query) => query.to_string(), 
+  //         None => String::new()
+  //     }
+  // }
 
   /// Adds the rule to a new group - "Feature-flag API cleanup"
   pub(crate) fn add_to_feature_flag_api_group(&mut self) {
@@ -146,15 +154,24 @@ impl Rule {
   }
 
   pub(crate) fn replace_node(&self) -> String {
-    String::from(&self.replace_node)
+    match &self.replace_node {
+      Some(node) => node.to_string(),
+      None => String::new()
+    }
   }
 
-  fn query(&self) -> String {
-    String::from(&self.query)
+  pub(crate) fn query(&self) -> String {
+    match &self.query {
+      Some(query) => query.to_string(),
+      None => String::new()
+    }
   }
 
   pub(crate) fn replace(&self) -> String {
-    String::from(&self.replace)
+    match &self.replace {
+      Some(replace) => replace.to_string(),
+      None => String::new()
+    }
   }
 
   pub(crate) fn constraints(&self) -> Vec<Constraint> {
@@ -186,11 +203,11 @@ impl Rule {
   }
 
   pub(crate) fn update_replace(&mut self, substitutions: &HashMap<String, String>) {
-    self.replace = substitute_tags(self.replace(), substitutions);
+    self.replace = Some(substitute_tags(self.replace(), substitutions));
   }
 
   pub(crate) fn update_query(&mut self, substitutions: &HashMap<String, String>) {
-    self.query = substitute_tags(self.query(), substitutions);
+    self.query = Some(substitute_tags(self.query(), substitutions));
   }
 
   pub(crate) fn name(&self) -> String {
@@ -236,7 +253,7 @@ impl Rule {
     // Get all matches for the query in the given scope `node`.
     let all_query_matches = node.get_all_matches_for_query(
       source_code_unit.code(),
-      rule_store.get_query(&self.get_query()),
+      rule_store.get_query(&self.query()),
       recursive,
       Some(self.replace_node()),
     );
@@ -279,9 +296,9 @@ impl Rule {
   ) -> Self {
     Self {
       name: name.to_string(),
-      query: query.to_string(),
-      replace_node: replace_node.to_string(),
-      replace: replace.to_string(),
+      query: Some(query.to_string()),
+      replace_node: Some(replace_node.to_string()),
+      replace: Some(replace.to_string()),
       groups: None,
       holes,
       constraints,
