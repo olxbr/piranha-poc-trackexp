@@ -11,7 +11,9 @@
 
 language = ["kt"]
 substitutions = [
-    ["stale_flag_name", "SAMPLE_STALE_FLAG"],
+    ["stale_flag_name", "experiment-name"],
+    ["method_name", "shouldEnableFlag"],
+    ["flag_checker_method_name", "isFlagEnabled"],
     ["treated_complement", "false"],
     ["treated", "true"],
 ]

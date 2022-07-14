@@ -1,0 +1,4 @@
+[[edges]]
+scope = "Parent"
+from = "deleting_flag_checker_declaration"
+to = ["remove_flag_check"]
